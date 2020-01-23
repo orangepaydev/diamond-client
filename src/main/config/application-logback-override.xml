@@ -1,0 +1,4 @@
+<included>
+    <property name="root.level" value="INFO" />
+    <logger name="organization.apps" level="INFO"/>
+</included>

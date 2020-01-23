@@ -1,0 +1,4 @@
+application:
+  application-name: 'Diamond Client'
+  diamond-proxy-url: 'wss://radiant-eyrie-13424.herokuapp.com/diamondMsg'
+  proxy-port: 3168

@@ -1,0 +1,10 @@
+server:
+  port: 3167
+  servlet:
+    context-path: /app-service
+
+application:
+  application-name: 'Reference Application'
+  diamond-proxy-url: 'wss://radiant-eyrie-13424.herokuapp.com/diamondMsg'
+  proxy-port: 3168
+  diamon-pac-file: 'diamond.pac'

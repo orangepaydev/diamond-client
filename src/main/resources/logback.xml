@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+
+<configuration debug="true" scan="true" scanPeriod="30 seconds">
+    <variable name="application.name" value="application"/>
+    <!-- This is a build helper, if we have set the profile to local, then change the log location -->
+    <if condition='property("spring.profiles.active").contains("local")'>
+        <then>
+            <variable name="log.location" value="build"/>
+            <variable name="override.location" value="build"/>
+        </then>
+        <else>
+            <variable name="log.location" value="./logs"/>
+        </else>
+    </if>
+    
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${log.location}/${application.name}.log</file>
+        <append>true</append>
+        <encoder >
+            <pattern>%d %-5level [%thread] %logger{0}: %msg%n</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${log.location}/archive/${application.name}.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>500MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <maxHistory>30</maxHistory>
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+    </appender>
+
+    <logger name="organization.apps" level="debug"/>
+
+    <include optional="true" file="conf/${application.name}-logback-override.xml"/>
+
+    <root level="${root.level:-INFO}">
+        <appender-ref ref="FILE" />
+    </root>
+
+</configuration>
