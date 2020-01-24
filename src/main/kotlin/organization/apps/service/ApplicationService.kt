@@ -17,6 +17,7 @@ import org.eclipse.jetty.websocket.api.Session
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest
 import org.eclipse.jetty.websocket.client.WebSocketClient
 import org.springframework.beans.factory.annotation.Autowired
+import organization.apps.domain.TransferMsgHolder
 import java.lang.Exception
 import java.net.URI
 import java.util.concurrent.LinkedTransferQueue
@@ -80,15 +81,19 @@ class ApplicationService (val applicationConfig: ApplicationConfig) {
     // Receive a message from the Diamond-server
     fun handleFrame(payload: String?) {
         if (payload != null) {
-            val transferMsgResponse = gson.fromJson(payload, TransferMsg::class.java)
+            val transferMsgHolder = gson.fromJson(payload, TransferMsgHolder::class.java)
+            for (msgBody in transferMsgHolder.transferMsgHolder) {
+                val transferMsgResponse = gson.fromJson(msgBody, TransferMsg::class.java)
 
-            when (transferMsgResponse.transferType) {
-                TransferMsg.TRANSFER_TYPE_CONNECT -> processConnect(transferMsgResponse)
-                TransferMsg.TRANSFER_TYPE_CONNECTED -> processConnected(transferMsgResponse)
-                TransferMsg.TRANSFER_TYPE_TRANSFER -> processTransfer(transferMsgResponse)
-                TransferMsg.TRANSFER_TYPE_DISCONNECT -> processDisconnect(transferMsgResponse)
-                TransferMsg.TRANSFER_TYPE_KEEPALIVE -> {
-                    logger.debug("Received KeepAlive from peer nodes")
+                when (transferMsgResponse.transferType) {
+                    TransferMsg.TRANSFER_TYPE_CONNECT -> processConnect(transferMsgResponse)
+                    TransferMsg.TRANSFER_TYPE_CONNECTED -> processConnected(transferMsgResponse)
+                    TransferMsg.TRANSFER_TYPE_TRANSFER -> processTransfer(transferMsgResponse)
+                    TransferMsg.TRANSFER_TYPE_DISCONNECT -> processDisconnect(transferMsgResponse)
+                    TransferMsg.TRANSFER_TYPE_KEEPALIVE -> {
+                        // Do nothing
+//                    logger.debug("Received KeepAlive from peer nodes")
+                    }
                 }
             }
         }
@@ -115,7 +120,7 @@ class ApplicationService (val applicationConfig: ApplicationConfig) {
             try {
                 socket.use {
                     socket.getInputStream().use {inputStream ->
-                        val byteArray = ByteArray(1024*10)
+                        val byteArray = ByteArray(1024*100)
                         var bytesRead: Int
 
                         // Loop to send data
@@ -204,7 +209,7 @@ class ApplicationService (val applicationConfig: ApplicationConfig) {
 
     // Corresponding side received data on the socket
     fun processTransfer (transferMsgResponse: TransferMsg) {
-        logger.info("Received Diamond Transfer {} ", transferMsgResponse.socketId)
+        //logger.info("Received Diamond Transfer {} ", transferMsgResponse.socketId)
         val socketHolder = socketMap[transferMsgResponse.socketId]
 
         socketHolder!!.outputStream.write(
@@ -245,12 +250,38 @@ class ApplicationService (val applicationConfig: ApplicationConfig) {
             }
         }
 
+        // Received from the SendQueue and sent to the WebSocket server
         thread (start = true ) {
+            var emptyMsgCount = 0
+            var bodySize = 0;
+            var transferMsgHolder = TransferMsgHolder ()
+
             while (true) {
 
-                val sendBody = sendQueue.poll(10, TimeUnit.SECONDS)
+
+                val sendBody = sendQueue.poll(50, TimeUnit.MILLISECONDS)
+
                 if (sendBody != null) {
-                    session.remote.sendString(sendBody)
+                    emptyMsgCount = 0
+                    bodySize = bodySize + sendBody.length
+
+                    transferMsgHolder.transferMsgHolder.add(sendBody)
+                } else {
+                    emptyMsgCount++;
+                }
+
+                // overflow
+                if (
+                        (bodySize > 10240) ||                         // Data Packet exceeded the buffer size
+                        ((bodySize > 0) && (emptyMsgCount > 2))       // Pending Msg waited too long
+                ) {
+                    logger.debug("Send Size {}", bodySize)
+                    session.remote.sendString(gson.toJson(transferMsgHolder))
+
+                    // Reset all the variables
+                    bodySize = 0
+                    emptyMsgCount = 0
+                    transferMsgHolder = TransferMsgHolder ()
                 }
             }
         }

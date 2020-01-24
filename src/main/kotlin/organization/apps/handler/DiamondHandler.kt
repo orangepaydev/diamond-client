@@ -31,7 +31,6 @@ class DiamondHandler {
 
     @OnWebSocketMessage
     fun onMessage(msg: String) {
-        logger.debug("Received Payload {}", msg)
         applicationService.handleFrame(msg)
     }
 

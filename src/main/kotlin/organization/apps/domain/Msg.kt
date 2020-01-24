@@ -24,3 +24,7 @@ data class ConnectRequest (
         val destHost: String,
         val destPort: Int
 )
+
+class TransferMsgHolder {
+    var transferMsgHolder = mutableListOf<String>()
+}
