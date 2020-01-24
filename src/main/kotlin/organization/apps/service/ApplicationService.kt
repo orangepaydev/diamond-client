@@ -78,6 +78,7 @@ class ApplicationService (val applicationConfig: ApplicationConfig) {
     fun handleFrame(payload: String?) {
         if (payload != null) {
             val transferMsgResponse = gson.fromJson(payload, TransferMsg::class.java)
+
             when (transferMsgResponse.transferType) {
                 TransferMsg.TRANSFER_TYPE_CONNECT -> processConnect(transferMsgResponse)
                 TransferMsg.TRANSFER_TYPE_CONNECTED -> processConnected(transferMsgResponse)
@@ -94,7 +95,8 @@ class ApplicationService (val applicationConfig: ApplicationConfig) {
 
         // Create a socket Holder
         val connectRequest = gson.fromJson(transferMsgResponse.payloadB64, ConnectRequest::class.java)
-        logger.info("Received Diamond Request ", connectRequest.destHost, " ", connectRequest.destPort)
+        logger.info("Received Diamond Request socket: {} for Target {} : {} ", transferMsgResponse.socketId, connectRequest.destHost, connectRequest.destPort)
+
         val socket = Socket (connectRequest.destHost, connectRequest.destPort)
         socketMap[transferMsgResponse.socketId] = SocketHolder(
                 socket = socket,
@@ -115,6 +117,7 @@ class ApplicationService (val applicationConfig: ApplicationConfig) {
                     // Loop to send data
                     do {
                         bytesRead = inputStream.read(byteArray)
+                        logger.debug("Received {} with size {}", transferMsgResponse.socketId, bytesRead)
                         sendTransferMsg(
                                 transferType =  TransferMsg.TRANSFER_TYPE_TRANSFER,
                                 socketId = transferMsgResponse.socketId,
@@ -122,7 +125,6 @@ class ApplicationService (val applicationConfig: ApplicationConfig) {
                         )
                     } while (bytesRead != -1)
                 }
-
             }
 
             sendTransferMsg(
@@ -139,6 +141,8 @@ class ApplicationService (val applicationConfig: ApplicationConfig) {
     fun processConnected (transferMsgResponse: TransferMsg) {
         val socketHolder = socketMap[transferMsgResponse.socketId]
         val socketId = transferMsgResponse.socketId
+
+        logger.info("Received Diamond Connected for socket ", transferMsgResponse.socketId)
 
         // Start the thread to receive the data
         thread(start = true) {
@@ -180,6 +184,7 @@ class ApplicationService (val applicationConfig: ApplicationConfig) {
     // Corresponding side indicate socket killed
     fun processDisconnect (transferMsgResponse: TransferMsg) {
         val socketHolder = socketMap[transferMsgResponse.socketId]
+        logger.info("Received Diamond DisConnect socket: {} ", transferMsgResponse.socketId)
 
         // Close the socket and remove the holder
         socketHolder!!.outputStream.close()
@@ -190,6 +195,7 @@ class ApplicationService (val applicationConfig: ApplicationConfig) {
 
     // Corresponding side received data on the socket
     fun processTransfer (transferMsgResponse: TransferMsg) {
+        logger.info("Received Diamond Transfer {} ", transferMsgResponse.socketId)
         val socketHolder = socketMap[transferMsgResponse.socketId]
 
         socketHolder!!.outputStream.write(
