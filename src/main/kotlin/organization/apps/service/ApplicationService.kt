@@ -82,6 +82,9 @@ class ApplicationService (val applicationConfig: ApplicationConfig) {
     fun handleFrame(payload: String?) {
         if (payload != null) {
             val transferMsgHolder = gson.fromJson(payload, TransferMsgHolder::class.java)
+            if (transferMsgHolder.transferMsgHolder.size > 1) {
+                logger.debug("Overflow {}", transferMsgHolder)
+            }
             for (msgBody in transferMsgHolder.transferMsgHolder) {
                 val transferMsgResponse = gson.fromJson(msgBody, TransferMsg::class.java)
 
@@ -273,9 +276,9 @@ class ApplicationService (val applicationConfig: ApplicationConfig) {
                 // overflow
                 if (
                         (bodySize > 10240) ||                         // Data Packet exceeded the buffer size
-                        ((bodySize > 0) && (emptyMsgCount > 2))       // Pending Msg waited too long
+                        ((bodySize > 0) && (emptyMsgCount > 10))       // Pending Msg waited too long
                 ) {
-                    logger.debug("Send Size {}", bodySize)
+                    logger.debug("Send Size {} and eMsgCount {}", bodySize, emptyMsgCount)
                     session.remote.sendString(gson.toJson(transferMsgHolder))
 
                     // Reset all the variables
