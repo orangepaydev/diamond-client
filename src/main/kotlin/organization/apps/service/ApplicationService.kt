@@ -17,6 +17,7 @@ import org.eclipse.jetty.websocket.api.Session
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest
 import org.eclipse.jetty.websocket.client.WebSocketClient
 import org.springframework.beans.factory.annotation.Autowired
+import java.lang.Exception
 import java.net.URI
 import kotlin.concurrent.thread
 
@@ -82,8 +83,8 @@ class ApplicationService (val applicationConfig: ApplicationConfig) {
             when (transferMsgResponse.transferType) {
                 TransferMsg.TRANSFER_TYPE_CONNECT -> processConnect(transferMsgResponse)
                 TransferMsg.TRANSFER_TYPE_CONNECTED -> processConnected(transferMsgResponse)
-                TransferMsg.TRANSFER_TYPE_TRANSFER -> processDisconnect(transferMsgResponse)
-                TransferMsg.TRANSFER_TYPE_DISCONNECT -> processTransfer(transferMsgResponse)
+                TransferMsg.TRANSFER_TYPE_TRANSFER -> processTransfer(transferMsgResponse)
+                TransferMsg.TRANSFER_TYPE_DISCONNECT -> processDisconnect(transferMsgResponse)
                 TransferMsg.TRANSFER_TYPE_KEEPALIVE -> {
                     logger.debug("Received KeepAlive from peer nodes")
                 }
@@ -109,22 +110,26 @@ class ApplicationService (val applicationConfig: ApplicationConfig) {
 
         // Start the Thread that will read from the socket
         thread (start = true) {
-            socket.use {
-                socket.getInputStream().use {inputStream ->
-                    val byteArray = ByteArray(1024*10)
-                    var bytesRead: Int
+            try {
+                socket.use {
+                    socket.getInputStream().use {inputStream ->
+                        val byteArray = ByteArray(1024*10)
+                        var bytesRead: Int
 
-                    // Loop to send data
-                    do {
-                        bytesRead = inputStream.read(byteArray)
-                        logger.debug("Received {} with size {}", transferMsgResponse.socketId, bytesRead)
-                        sendTransferMsg(
-                                transferType =  TransferMsg.TRANSFER_TYPE_TRANSFER,
-                                socketId = transferMsgResponse.socketId,
-                                payload = base64Encoding.encode(byteArray, 0, bytesRead)
-                        )
-                    } while (bytesRead != -1)
+                        // Loop to send data
+                        do {
+                            bytesRead = inputStream.read(byteArray)
+                            logger.debug("Received {} with size {}", transferMsgResponse.socketId, bytesRead)
+                            sendTransferMsg(
+                                    transferType =  TransferMsg.TRANSFER_TYPE_TRANSFER,
+                                    socketId = transferMsgResponse.socketId,
+                                    payload = base64Encoding.encode(byteArray, 0, bytesRead)
+                            )
+                        } while (bytesRead != -1)
+                    }
                 }
+            }catch (e: Exception) {
+                logger.error("UnExpected error for socket " + transferMsgResponse.socketId, e)
             }
 
             sendTransferMsg(
