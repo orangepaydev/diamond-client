@@ -19,6 +19,8 @@ import org.eclipse.jetty.websocket.client.WebSocketClient
 import org.springframework.beans.factory.annotation.Autowired
 import java.lang.Exception
 import java.net.URI
+import java.util.concurrent.LinkedTransferQueue
+import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
 @Component
@@ -211,6 +213,8 @@ class ApplicationService (val applicationConfig: ApplicationConfig) {
         socketHolder.outputStream.flush()
     }
 
+    val sendQueue = LinkedTransferQueue<String> ()
+
     fun sendTransferMsg (transferType: Int, socketId: Long = -1, payload: String? = null) {
         val msgPayload = gson.toJson(
                 TransferMsg(
@@ -220,7 +224,7 @@ class ApplicationService (val applicationConfig: ApplicationConfig) {
                         transferType = transferType
                 )
         )
-        session.remote.sendString(msgPayload)
+        sendQueue.put(msgPayload)
     }
 
     // Called by diamondHandler once onOpen is called
@@ -238,6 +242,16 @@ class ApplicationService (val applicationConfig: ApplicationConfig) {
                 sendTransferMsg(
                         transferType =  TransferMsg.TRANSFER_TYPE_KEEPALIVE
                 )
+            }
+        }
+
+        thread (start = true ) {
+            while (true) {
+
+                val sendBody = sendQueue.poll(10, TimeUnit.SECONDS)
+                if (sendBody != null) {
+                    session.remote.sendString(sendBody)
+                }
             }
         }
     }
