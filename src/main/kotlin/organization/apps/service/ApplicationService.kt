@@ -120,11 +120,13 @@ class ApplicationService (val applicationConfig: ApplicationConfig) {
                         do {
                             bytesRead = inputStream.read(byteArray)
                             logger.debug("Received {} with size {}", transferMsgResponse.socketId, bytesRead)
-                            sendTransferMsg(
-                                    transferType =  TransferMsg.TRANSFER_TYPE_TRANSFER,
-                                    socketId = transferMsgResponse.socketId,
-                                    payload = base64Encoding.encode(byteArray, 0, bytesRead)
-                            )
+                            if (bytesRead != -1) {
+                                sendTransferMsg(
+                                        transferType =  TransferMsg.TRANSFER_TYPE_TRANSFER,
+                                        socketId = transferMsgResponse.socketId,
+                                        payload = base64Encoding.encode(byteArray, 0, bytesRead)
+                                )
+                            }
                         } while (bytesRead != -1)
                     }
                 }

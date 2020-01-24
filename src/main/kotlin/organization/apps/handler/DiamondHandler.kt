@@ -17,6 +17,10 @@ class DiamondHandler {
     @OnWebSocketClose
     fun onClose(statusCode: Int, reason: String?) {
         logger.error("Re-Connect {}, {}", statusCode, reason)
+
+        // Force a connect again
+        logger.info("Trying to reconnect")
+        applicationService.connect()
     }
 
     @OnWebSocketConnect
@@ -33,7 +37,7 @@ class DiamondHandler {
 
     @OnWebSocketError
     fun onError(cause: Throwable) {
-
+        logger.error("Error ", cause)
     }
 
     companion object {
