@@ -83,7 +83,7 @@ class ApplicationService (val applicationConfig: ApplicationConfig) {
         if (payload != null) {
             val transferMsgHolder = gson.fromJson(payload, TransferMsgHolder::class.java)
             if (transferMsgHolder.transferMsgHolder.size > 1) {
-                logger.debug("Overflow {}", transferMsgHolder)
+                logger.debug("Overflow entry {}", transferMsgHolder.transferMsgHolder.size)
             }
             for (msgBody in transferMsgHolder.transferMsgHolder) {
                 val transferMsgResponse = gson.fromJson(msgBody, TransferMsg::class.java)
@@ -275,7 +275,7 @@ class ApplicationService (val applicationConfig: ApplicationConfig) {
 
                 // overflow
                 if (
-                        (bodySize > 10240) ||                         // Data Packet exceeded the buffer size
+                        (bodySize > 102400) ||                         // Data Packet exceeded the buffer size
                         ((bodySize > 0) && (emptyMsgCount > 10))       // Pending Msg waited too long
                 ) {
                     logger.debug("Send Size {} and eMsgCount {}", bodySize, emptyMsgCount)
