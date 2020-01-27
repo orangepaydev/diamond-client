@@ -7,7 +7,7 @@ data class TransferMsg (
     // 5 - Connected
     // 10 - Disconnect
     // 20 - transfer
-    var transferType: Int,
+    var transferType: Int = TRANSFER_TYPE_INVALID,
     var clientId: String,
     var socketId: Long
 ) {
@@ -17,6 +17,7 @@ data class TransferMsg (
         val TRANSFER_TYPE_DISCONNECT = 10
         val TRANSFER_TYPE_TRANSFER = 20
         val TRANSFER_TYPE_KEEPALIVE = 100
+        val TRANSFER_TYPE_INVALID = 100
     }
 }
 

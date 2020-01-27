@@ -275,7 +275,7 @@ class ApplicationService (val applicationConfig: ApplicationConfig) {
 
                 // overflow
                 if (
-                        (bodySize > 102400) ||                         // Data Packet exceeded the buffer size
+                        (bodySize > 60000) ||                         // Data Packet exceeded the buffer size
                         ((bodySize > 0) && (emptyMsgCount > 10))       // Pending Msg waited too long
                 ) {
                     logger.debug("Send Size {} and eMsgCount {}", bodySize, emptyMsgCount)
