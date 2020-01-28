@@ -260,14 +260,21 @@ class ApplicationService (val applicationConfig: ApplicationConfig) {
             var transferMsgHolder = TransferMsgHolder ()
 
             while (true) {
-
-
                 val sendBody = sendQueue.poll(50, TimeUnit.MILLISECONDS)
+                var flushBuffer = false
 
                 if (sendBody != null) {
                     emptyMsgCount = 0
-                    bodySize = bodySize + sendBody.length
 
+                    if ((bodySize + sendBody.length) > 60000) {
+                        logger.debug("Send Size {} and eMsgCount {}", bodySize, emptyMsgCount)
+                        session.remote.sendString(gson.toJson(transferMsgHolder))
+
+                        bodySize = 0
+                        emptyMsgCount = 0
+                        transferMsgHolder = TransferMsgHolder ()
+                    }
+                    bodySize = bodySize + sendBody.length
                     transferMsgHolder.transferMsgHolder.add(sendBody)
                 } else {
                     emptyMsgCount++;
@@ -275,8 +282,7 @@ class ApplicationService (val applicationConfig: ApplicationConfig) {
 
                 // overflow
                 if (
-                        (bodySize > 60000) ||                         // Data Packet exceeded the buffer size
-                        ((bodySize > 0) && (emptyMsgCount > 10))       // Pending Msg waited too long
+                        (bodySize > 0) && (emptyMsgCount > 10)       // Pending Msg waited too long
                 ) {
                     logger.debug("Send Size {} and eMsgCount {}", bodySize, emptyMsgCount)
                     session.remote.sendString(gson.toJson(transferMsgHolder))
