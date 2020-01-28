@@ -266,7 +266,7 @@ class ApplicationService (val applicationConfig: ApplicationConfig) {
                 if (sendBody != null) {
                     emptyMsgCount = 0
 
-                    if ((bodySize + sendBody.length) > 60000) {
+                    if ((bodySize + sendBody.length) > 40000) {
                         logger.debug("Send Size {} and eMsgCount {}", bodySize, emptyMsgCount)
                         session.remote.sendString(gson.toJson(transferMsgHolder))
 
